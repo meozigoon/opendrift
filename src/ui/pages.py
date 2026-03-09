@@ -12,11 +12,13 @@ from src.simulation.config_loader import get_parameter_preset, load_defaults, re
 from src.simulation.runner import run_scenario
 from src.simulation.scenario_manager import list_available_results, list_saved_scenarios, load_saved_scenario, save_scenario_payload
 from src.ui.components import (
+    render_animation_if_exists,
     render_download_buttons,
     render_image_if_exists,
     render_manifest,
     render_plot_footnote,
     render_pydeck_map,
+    render_screen_help,
     render_summary_cards,
     render_validation_result,
 )
@@ -68,6 +70,10 @@ def render_input_tab() -> None:
     scenario_options = {path.name: path for path in saved_scenarios}
 
     st.subheader("Scenario input")
+    render_screen_help(
+        "입력 화면 설명",
+        "이 화면에서는 플라스틱 종류, 염분, 기름 종류, 방출 위치와 시간, 입자 수, Drift 파라미터, forcing NetCDF를 설정하고 시뮬레이션을 실행할 수 있습니다.",
+    )
     top_cols = st.columns([2, 1, 1, 1])
     selected_name = top_cols[0].selectbox("Saved scenario", options=[""] + list(scenario_options.keys()))
     if top_cols[1].button("Load selected") and selected_name:
@@ -194,9 +200,15 @@ def render_results_tabs() -> None:
     if resolved.get("use_demo_data"):
         st.warning("This result was generated in synthetic demo mode.")
 
-    basic_tab, analysis_tab, download_tab, log_tab = st.tabs(["Basic result", "Analysis", "Download", "Log"])
+    basic_tab, animation_tab, analysis_tab, download_tab, log_tab = st.tabs(
+        ["Basic result", "Animation", "Analysis", "Download", "Log"]
+    )
 
     with basic_tab:
+        render_screen_help(
+            "기본 결과 화면 설명",
+            "선택한 시점의 입자 분포, 주요 핵심 지표, 궤적 지도, convex hull 지도, 시점별 스냅샷을 확인하는 화면입니다.",
+        )
         render_summary_cards(summary_df)
         if (selected / "result.nc").exists():
             with xr.open_dataset(selected / "result.nc") as dataset:
@@ -205,13 +217,44 @@ def render_results_tabs() -> None:
         image_cols = st.columns(2)
         with image_cols[0]:
             render_image_if_exists(selected / "trajectory_map.png", "Trajectory map")
+            render_plot_footnote(
+                "trajectory map에서 파란 얇은 선은 개별 입자 궤적, 주황 점은 최종 입자 위치, 빨간 별은 방출점, 초록 선은 centroid 이동 경로, 보라 선은 최종 convex hull입니다."
+            )
             render_image_if_exists(selected / "convex_hull_map.png", "Convex hull map")
+            render_plot_footnote(
+                "convex hull map에서 파란 점은 최종 시점 입자 위치, 빨간 선은 외곽 경계, 초록 별은 원래 방출점입니다."
+            )
         with image_cols[1]:
             render_image_if_exists(selected / "snapshot_24h.png", "Snapshot 24h")
+            render_plot_footnote("snapshot 이미지에서 파란 점은 해당 시점 입자 위치, 빨간 별은 방출점, 보라 선은 그 시점의 외곽 범위입니다.")
             render_image_if_exists(selected / "snapshot_72h.png", "Snapshot 72h")
+            render_plot_footnote("snapshot 이미지의 범례 의미는 동일합니다.")
             render_image_if_exists(selected / "snapshot_168h.png", "Snapshot 168h")
+            render_plot_footnote("snapshot 이미지의 범례 의미는 동일합니다.")
+
+    with animation_tab:
+        render_screen_help(
+            "애니메이션 화면 설명",
+            "시뮬레이션 시간에 따라 미세플라스틱 입자군이 어떻게 이동하는지 GIF 애니메이션으로 계속 반복 재생해서 보여주는 화면입니다.",
+        )
+        render_animation_if_exists(selected / "animation.gif", "Particle animation (looping GIF)")
+        render_plot_footnote(
+            "애니메이션 프레임에서 파란 점은 각 시점의 입자 위치, 빨간 별은 초기 방출점입니다. GIF는 반복(loop) 재생됩니다."
+        )
+        if (selected / "animation.gif").exists():
+            st.download_button(
+                label="Download animation.gif",
+                data=(selected / "animation.gif").read_bytes(),
+                file_name="animation.gif",
+                mime="image/gif",
+                key=f"download_animation_preview_{selected.name}",
+            )
 
     with analysis_tab:
+        render_screen_help(
+            "분석 화면 설명",
+            "시간에 따른 이동거리, centroid 이동, 확산 면적, 시나리오 비교 표와 그래프를 확인하는 화면입니다.",
+        )
         if not metrics_df.empty:
             st.line_chart(metrics_df.set_index("hours_since_release")[["max_distance_km", "centroid_distance_km", "mean_distance_km"]])
             render_plot_footnote(
@@ -225,22 +268,22 @@ def render_results_tabs() -> None:
                 "dispersion_radius_km = mean distance-based spread radius, "
                 "p95_radius_km = 95th percentile distance from release point."
             )
-            st.dataframe(summary_df, use_container_width=True)
-            st.dataframe(metrics_df, use_container_width=True, height=300)
+            st.dataframe(summary_df, width="stretch")
+            st.dataframe(metrics_df, width="stretch", height=300)
         plot_cols = st.columns(2)
         with plot_cols[0]:
             render_image_if_exists(selected / "centroid_distance_plot.png", "Distance plot")
             render_plot_footnote(
-                "distance plot lines: centroid distance, max distance, and mean distance over time."
+                "distance plot 선: centroid distance, max distance, mean distance의 시간 변화입니다."
             )
             render_image_if_exists(selected / "dispersion_area_plot.png", "Dispersion area plot")
             render_plot_footnote(
-                "dispersion area bars: convex hull area at requested snapshot hours."
+                "dispersion area 막대: 요청된 snapshot 시점에서의 convex hull 면적입니다."
             )
         with plot_cols[1]:
             render_image_if_exists(selected / "comparison_plot.png", "Scenario comparison plot")
             render_plot_footnote(
-                "comparison plot: top panel compares scenario max distance, bottom panel compares scenario convex hull area."
+                "comparison plot: 위 패널은 시나리오별 최대 이동거리, 아래 패널은 시나리오별 convex hull 면적 비교입니다."
             )
             if (selected / "analysis_report.md").exists():
                 st.markdown((selected / "analysis_report.md").read_text(encoding="utf-8"))
@@ -260,19 +303,29 @@ def render_results_tabs() -> None:
             comparison_summary = Path(artifacts["comparison_summary_csv"])
             render_image_if_exists(comparison_plot, "Cross-scenario comparison")
             render_plot_footnote(
-                "each colored line corresponds to one selected scenario; top panel is max distance and bottom panel is convex hull area."
+                "각 색 선은 하나의 선택된 시나리오를 의미합니다. 위 패널은 최대 이동거리, 아래 패널은 convex hull 면적입니다."
             )
             if comparison_summary.exists():
-                st.dataframe(pd.read_csv(comparison_summary), use_container_width=True)
+                st.dataframe(pd.read_csv(comparison_summary), width="stretch")
 
     with download_tab:
+        render_screen_help(
+            "다운로드 화면 설명",
+            "이 화면에서는 NetCDF, CSV, PNG, GIF, ZIP 등 생성된 산출물을 개별 또는 묶음 파일로 내려받을 수 있습니다.",
+        )
         render_download_buttons(selected)
         file_table = [{"path": str(path.relative_to(selected)), "size_bytes": path.stat().st_size} for path in sorted(selected.rglob("*")) if path.is_file()]
-        st.dataframe(pd.DataFrame(file_table), use_container_width=True)
+        st.dataframe(pd.DataFrame(file_table), width="stretch")
+        render_plot_footnote("파일 표는 현재 선택한 결과 폴더에 들어 있는 실제 산출물 목록과 파일 크기를 보여줍니다.")
 
     with log_tab:
+        render_screen_help(
+            "로그 화면 설명",
+            "실행 로그, 경고, 생성 파일 manifest를 확인하여 입력 검증 결과와 실행 과정을 추적하는 화면입니다.",
+        )
         render_manifest(selected)
         st.text_area("Run log", value=read_text(selected / "run.log"), height=300)
+        render_plot_footnote("manifest는 결과 폴더의 파일 목록과 경고/메모를 요약하며, run log는 실제 실행 중 기록된 메시지입니다.")
 
 
 def render_app() -> None:

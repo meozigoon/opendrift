@@ -34,11 +34,15 @@ def render_summary_cards(summary_df: pd.DataFrame) -> None:
 
 def render_image_if_exists(path: Path, caption: str) -> None:
     if path.exists():
-        st.image(str(path), caption=caption, use_container_width=True)
+        st.image(str(path), caption=caption, width="stretch")
 
 
 def render_plot_footnote(text: str) -> None:
     st.caption(f"Footnote: {text}")
+
+
+def render_screen_help(title: str, description: str) -> None:
+    st.info(f"{title}: {description}")
 
 
 def _build_paths(dataset: xr.Dataset, max_paths: int = 40) -> list[dict]:
@@ -89,11 +93,16 @@ def render_pydeck_map(dataset: xr.Dataset, time_index: int) -> None:
         tooltip={"text": "{label}"},
         layers=layers,
     )
-    st.pydeck_chart(deck, use_container_width=True)
+    st.pydeck_chart(deck, width="stretch")
     render_plot_footnote(
         "blue lines = sampled particle trajectories from release to the final saved timestep, "
         "orange dots = particle positions at the currently selected timestep."
     )
+
+
+def render_animation_if_exists(path: Path, caption: str) -> None:
+    if path.exists():
+        st.image(str(path), caption=caption, width="stretch")
 
 
 def render_download_buttons(result_dir: Path) -> None:

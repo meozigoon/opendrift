@@ -84,7 +84,17 @@ def build_animation_gif(
         _plot_scatter(ax, lon[valid], lat[valid], transform, s=22, c="#4C78A8", alpha=0.8)
         _plot_scatter(ax, np.array([scenario.release_lon]), np.array([scenario.release_lat]), transform, s=85, marker="*", c="#E45756")
         ax.set_title(f"{scenario.scenario_name} | {np.datetime_as_string(times[index], unit='h')}")
-        fig.tight_layout()
+        legend_handles = [
+            Line2D([0], [0], marker="o", color="w", label="Particle positions", markerfacecolor="#4C78A8", markersize=7),
+            Line2D([0], [0], marker="*", color="w", label="Release point", markerfacecolor="#E45756", markersize=12),
+        ]
+        ax.legend(handles=legend_handles, loc="best")
+        fig.tight_layout(rect=(0, 0.06, 1, 1))
+        _add_footer(
+            fig,
+            "Footnote: blue dots = particle positions at this timestep, red star = release point. "
+            "Animation loops continuously in the web app.",
+        )
         buffer = BytesIO()
         fig.savefig(buffer, format="png", dpi=140, bbox_inches="tight")
         plt.close(fig)
