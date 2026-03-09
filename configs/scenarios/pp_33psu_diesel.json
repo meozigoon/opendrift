@@ -1,0 +1,48 @@
+{
+  "scenario_name": "pp_33psu_diesel_surface_demo",
+  "output_name": "pp_33psu_diesel_surface",
+  "polymer_type": "PP",
+  "salinity_psu": 33,
+  "oil_type": "diesel",
+  "release": {
+    "lat": 35.0,
+    "lon": 129.0,
+    "time": "2024-01-01T00:00:00",
+    "duration_hours": 168,
+    "particles": 300,
+    "radius_m": 5000,
+    "z": 0.0
+  },
+  "drift": {
+    "terminal_velocity": 0.0015,
+    "wind_drift_factor": 0.036,
+    "current_drift_factor": 0.99,
+    "stokes_drift": false,
+    "vertical_mixing": false,
+    "vertical_advection": false
+  },
+  "data_source": {
+    "use_demo_data": true,
+    "current_path": null,
+    "wind_path": null
+  },
+  "targets": {
+    "radius_km": 50.0,
+    "interest_area_bbox": null
+  },
+  "runtime": {
+    "time_step_minutes": 60,
+    "output_time_step_minutes": 60,
+    "log_level": "INFO",
+    "output_root": "data/output",
+    "export_variables": []
+  },
+  "analysis": {
+    "snapshots_hours": [24, 72, 168],
+    "animation_frame_stride": 2
+  },
+  "metadata": {
+    "temperature_c": 25.0,
+    "notes": "Synthetic demo scenario for a PP / 33 psu / diesel surface transport study."
+  }
+}

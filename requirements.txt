@@ -1,0 +1,13 @@
+opendrift>=1.14.8
+streamlit>=1.43.0
+xarray>=2024.10.0
+pandas>=2.2.3
+numpy>=2.2.0
+matplotlib>=3.10.0
+cartopy>=0.24.0
+shapely>=2.0.6
+netCDF4>=1.7.2
+PyYAML>=6.0.2
+Pillow>=11.0.0
+psutil>=6.1.1
+pytest>=8.3.4
