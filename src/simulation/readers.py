@@ -83,10 +83,10 @@ def prepare_input_paths(scenario: ScenarioConfig, output_dir: Path) -> tuple[Pat
     notes: list[str] = []
     if scenario.use_demo_data:
         current_path, wind_path = create_demo_inputs(output_dir / "demo_inputs", scenario)
-        notes.append("Synthetic demo inputs were generated because use_demo_data=true.")
+        notes.append("use_demo_data=true 이므로 합성 데모 입력장을 생성했습니다.")
         return current_path, wind_path, notes
     if scenario.current_path is None or scenario.wind_path is None:
-        raise ValueError("Real execution requires both current_path and wind_path.")
+        raise ValueError("실제 실행에는 해류 경로와 바람 경로가 모두 필요합니다.")
     return Path(scenario.current_path), Path(scenario.wind_path), notes
 
 

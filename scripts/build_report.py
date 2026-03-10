@@ -19,8 +19,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     result_dir = Path(args.result_dir)
     summary_df = pd.read_csv(result_dir / "summary.csv")
-    metrics_df = pd.read_csv(result_dir / "metrics.csv", parse_dates=["timestamp"])
-    output = build_markdown_report(result_dir, summary_df, metrics_df)
+    output = build_markdown_report(result_dir, summary_df)
     print(f"Report rebuilt: {output}")
     return 0
 

@@ -122,7 +122,7 @@ def default_scenario_payload(defaults: dict[str, Any] | None = None) -> dict[str
         },
         "metadata": {
             "temperature_c": defaults["project"]["temperature_c"],
-            "notes": "Synthetic demo mode. Replace with real NetCDF paths for research runs.",
+            "notes": "합성 데모 모드입니다. 실제 연구 실행 시에는 실제 NetCDF 경로로 교체하세요.",
         },
     }
 

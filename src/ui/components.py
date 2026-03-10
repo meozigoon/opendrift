@@ -9,6 +9,7 @@ import pydeck as pdk
 import streamlit as st
 import xarray as xr
 
+from src.ui.texts import localize_dataframe, localize_manifest
 from src.utils.validation import ValidationResult
 
 
@@ -26,10 +27,10 @@ def render_summary_cards(summary_df: pd.DataFrame) -> None:
         return
     row = summary_df.iloc[0]
     columns = st.columns(4)
-    columns[0].metric("Final max distance (km)", f"{row['final_max_distance_km']:.2f}")
-    columns[1].metric("Final centroid (km)", f"{row['final_centroid_distance_km']:.2f}")
-    columns[2].metric("Final hull area (km²)", f"{row['final_convex_hull_area_km2']:.2f}")
-    columns[3].metric("Surface retention", f"{row['final_surface_retention_ratio']:.2%}")
+    columns[0].metric("최종 최대 이동거리 (km)", f"{row['final_max_distance_km']:.2f}")
+    columns[1].metric("최종 중심점 이동거리 (km)", f"{row['final_centroid_distance_km']:.2f}")
+    columns[2].metric("최종 볼록 껍질 면적 (km²)", f"{row['final_convex_hull_area_km2']:.2f}")
+    columns[3].metric("표층 잔류 비율", f"{row['final_surface_retention_ratio']:.2%}")
 
 
 def render_image_if_exists(path: Path, caption: str) -> None:
@@ -38,7 +39,7 @@ def render_image_if_exists(path: Path, caption: str) -> None:
 
 
 def render_plot_footnote(text: str) -> None:
-    st.caption(f"Footnote: {text}")
+    st.caption(f"설명: {text}")
 
 
 def render_screen_help(title: str, description: str) -> None:
@@ -64,10 +65,10 @@ def render_pydeck_map(dataset: xr.Dataset, time_index: int) -> None:
     lat = np.asarray(dataset["lat"].values[:, time_index], dtype=float)
     valid = np.isfinite(lon) & np.isfinite(lat)
     if not valid.any():
-        st.info("No valid particle positions are available for this timestep.")
+        st.info("선택한 시점에 유효한 입자 위치가 없습니다.")
         return
 
-    point_data = [{"lon": float(lon_val), "lat": float(lat_val), "label": f"Particle {idx}"} for idx, (lon_val, lat_val) in enumerate(zip(lon[valid], lat[valid], strict=False))]
+    point_data = [{"lon": float(lon_val), "lat": float(lat_val), "label": f"입자 {idx + 1}"} for idx, (lon_val, lat_val) in enumerate(zip(lon[valid], lat[valid], strict=False))]
     center_lon = float(np.nanmean(lon[valid]))
     center_lat = float(np.nanmean(lat[valid]))
     layers = [
@@ -95,8 +96,7 @@ def render_pydeck_map(dataset: xr.Dataset, time_index: int) -> None:
     )
     st.pydeck_chart(deck, width="stretch")
     render_plot_footnote(
-        "blue lines = sampled particle trajectories from release to the final saved timestep, "
-        "orange dots = particle positions at the currently selected timestep."
+        "파란 선은 방출 시점부터 저장된 마지막 시점까지의 대표 입자 궤적이고, 주황 점은 현재 선택한 시점의 입자 위치입니다."
     )
 
 
@@ -136,7 +136,7 @@ def render_download_buttons(result_dir: Path) -> None:
         if not path.exists():
             continue
         st.download_button(
-            label=f"Download {filename}",
+            label=f"{filename} 다운로드",
             data=path.read_bytes(),
             file_name=filename,
             mime=mime_map.get(path.suffix.lower(), "application/octet-stream"),
@@ -147,4 +147,13 @@ def render_download_buttons(result_dir: Path) -> None:
 def render_manifest(result_dir: Path) -> None:
     manifest_path = result_dir / "manifest.json"
     if manifest_path.exists():
-        st.json(json.loads(manifest_path.read_text(encoding="utf-8")))
+        localized = localize_manifest(json.loads(manifest_path.read_text(encoding="utf-8")))
+        st.json(localized)
+
+
+def render_localized_dataframe(dataframe: pd.DataFrame, *, width: str = "stretch", height: int | None = None) -> None:
+    localized = localize_dataframe(dataframe)
+    kwargs = {"width": width}
+    if height is not None:
+        kwargs["height"] = height
+    st.dataframe(localized, **kwargs)

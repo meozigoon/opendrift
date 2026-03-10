@@ -5,12 +5,14 @@ from pathlib import Path
 import matplotlib
 
 matplotlib.use("Agg")
+matplotlib.rcParams["axes.unicode_minus"] = False
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import xarray as xr
 from matplotlib.lines import Line2D
+from matplotlib import font_manager
 
 from src.analysis.geometry import convex_hull_lonlat
 from src.simulation.config_loader import ScenarioConfig
@@ -19,6 +21,17 @@ try:  # pragma: no cover
     import cartopy.crs as ccrs
 except Exception:  # pragma: no cover
     ccrs = None
+
+
+def _configure_korean_font() -> None:
+    available = {font.name for font in font_manager.fontManager.ttflist}
+    for font_name in ("Malgun Gothic", "NanumGothic", "AppleGothic", "HYGothic-Medium", "Gulim"):
+        if font_name in available:
+            matplotlib.rcParams["font.family"] = font_name
+            break
+
+
+_configure_korean_font()
 
 
 def _extent_from_points(lon: np.ndarray, lat: np.ndarray) -> tuple[float, float, float, float]:
@@ -49,8 +62,8 @@ def _make_map_figure(extent: tuple[float, float, float, float]):
     fig, ax = plt.subplots(figsize=(10, 8))
     ax.set_xlim(extent[0], extent[1])
     ax.set_ylim(extent[2], extent[3])
-    ax.set_xlabel("Longitude")
-    ax.set_ylabel("Latitude")
+    ax.set_xlabel("경도")
+    ax.set_ylabel("위도")
     ax.grid(True, alpha=0.3, linestyle=":")
     return fig, ax, None
 
@@ -89,28 +102,28 @@ def plot_trajectory_map(dataset: xr.Dataset, scenario: ScenarioConfig, metrics_d
     final_lon = lon[:, -1]
     final_lat = lat[:, -1]
     valid_final = np.isfinite(final_lon) & np.isfinite(final_lat)
-    _plot_scatter(ax, final_lon[valid_final], final_lat[valid_final], transform, s=25, c="#F58518", alpha=0.8, label="Final particles")
-    _plot_scatter(ax, np.array([scenario.release_lon]), np.array([scenario.release_lat]), transform, s=90, marker="*", c="#E45756", label="Release point")
+    _plot_scatter(ax, final_lon[valid_final], final_lat[valid_final], transform, s=25, c="#F58518", alpha=0.8, label="최종 입자 위치")
+    _plot_scatter(ax, np.array([scenario.release_lon]), np.array([scenario.release_lat]), transform, s=90, marker="*", c="#E45756", label="방출점")
 
     centroid_lon = metrics_df["centroid_lon"].to_numpy(dtype=float)
     centroid_lat = metrics_df["centroid_lat"].to_numpy(dtype=float)
     valid_centroid = np.isfinite(centroid_lon) & np.isfinite(centroid_lat)
     if valid_centroid.any():
-        _plot_line(ax, centroid_lon[valid_centroid], centroid_lat[valid_centroid], transform, color="#54A24B", linewidth=2.0, label="Centroid")
+        _plot_line(ax, centroid_lon[valid_centroid], centroid_lat[valid_centroid], transform, color="#54A24B", linewidth=2.0, label="중심점 경로")
 
     hull = convex_hull_lonlat(final_lon[valid_final], final_lat[valid_final])
     if len(hull) >= 3:
         hull_lon = np.array([point[0] for point in hull], dtype=float)
         hull_lat = np.array([point[1] for point in hull], dtype=float)
-        _plot_line(ax, hull_lon, hull_lat, transform, color="#B279A2", linewidth=1.8, label="Convex hull")
+        _plot_line(ax, hull_lon, hull_lat, transform, color="#B279A2", linewidth=1.8, label="최종 볼록 껍질")
 
-    ax.set_title(f"Trajectory map: {scenario.scenario_name}")
+    ax.set_title(f"입자 궤적 지도: {scenario.scenario_name}")
     ax.legend(loc="best")
     fig.tight_layout(rect=(0, 0.06, 1, 1))
     _add_footer(
         fig,
-        "Footnote: blue thin lines = individual particle trajectories, orange dots = final particle positions, "
-        "red star = release point, green line = centroid trajectory, purple line = final convex hull.",
+        "설명: 파란 얇은 선은 개별 입자 궤적, 주황 점은 최종 입자 위치, 빨간 별은 방출점, "
+        "초록 선은 중심점 이동 경로, 보라 선은 최종 볼록 껍질입니다.",
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output_path, dpi=180, bbox_inches="tight")
@@ -129,7 +142,7 @@ def plot_convex_hull_map(dataset: xr.Dataset, scenario: ScenarioConfig, output_p
     if len(hull) >= 3:
         hull_lon = np.array([point[0] for point in hull], dtype=float)
         hull_lat = np.array([point[1] for point in hull], dtype=float)
-        _plot_line(ax, hull_lon, hull_lat, transform, color="#E45756", linewidth=2.0, label="Final convex hull")
+        _plot_line(ax, hull_lon, hull_lat, transform, color="#E45756", linewidth=2.0, label="최종 볼록 껍질")
     _plot_scatter(
         ax,
         np.array([scenario.release_lon]),
@@ -138,20 +151,19 @@ def plot_convex_hull_map(dataset: xr.Dataset, scenario: ScenarioConfig, output_p
         s=90,
         marker="*",
         c="#54A24B",
-        label="Release point",
+        label="방출점",
     )
-    ax.set_title(f"Final convex hull: {scenario.scenario_name}")
+    ax.set_title(f"최종 볼록 껍질 지도: {scenario.scenario_name}")
     legend_handles = [
-        Line2D([0], [0], marker="o", color="w", label="Final particle positions", markerfacecolor="#4C78A8", markersize=8),
-        Line2D([0], [0], color="#E45756", lw=2, label="Final convex hull"),
-        Line2D([0], [0], marker="*", color="w", label="Release point", markerfacecolor="#54A24B", markersize=12),
+        Line2D([0], [0], marker="o", color="w", label="최종 입자 위치", markerfacecolor="#4C78A8", markersize=8),
+        Line2D([0], [0], color="#E45756", lw=2, label="최종 볼록 껍질"),
+        Line2D([0], [0], marker="*", color="w", label="방출점", markerfacecolor="#54A24B", markersize=12),
     ]
     ax.legend(handles=legend_handles, loc="best")
     fig.tight_layout(rect=(0, 0.06, 1, 1))
     _add_footer(
         fig,
-        "Footnote: blue dots = final timestep particle positions, red line = outer boundary from convex hull, "
-        "green star = original release point.",
+        "설명: 파란 점은 최종 시점 입자 위치, 빨간 선은 볼록 껍질 기반 외곽 경계, 초록 별은 원래 방출점입니다.",
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output_path, dpi=180, bbox_inches="tight")
@@ -161,19 +173,19 @@ def plot_convex_hull_map(dataset: xr.Dataset, scenario: ScenarioConfig, output_p
 
 def plot_centroid_distance(metrics_df: pd.DataFrame, output_path: Path) -> Path:
     fig, ax = plt.subplots(figsize=(10, 5))
-    ax.plot(metrics_df["hours_since_release"], metrics_df["centroid_distance_km"], label="Centroid distance", linewidth=2.0)
-    ax.plot(metrics_df["hours_since_release"], metrics_df["max_distance_km"], label="Max distance", linewidth=1.6)
-    ax.plot(metrics_df["hours_since_release"], metrics_df["mean_distance_km"], label="Mean distance", linewidth=1.6)
-    ax.set_xlabel("Hours since release")
-    ax.set_ylabel("Distance (km)")
-    ax.set_title("Distance metrics over time")
+    ax.plot(metrics_df["hours_since_release"], metrics_df["centroid_distance_km"], label="중심점 이동거리", linewidth=2.0)
+    ax.plot(metrics_df["hours_since_release"], metrics_df["max_distance_km"], label="최대 이동거리", linewidth=1.6)
+    ax.plot(metrics_df["hours_since_release"], metrics_df["mean_distance_km"], label="평균 이동거리", linewidth=1.6)
+    ax.set_xlabel("방출 후 경과 시간 (시간)")
+    ax.set_ylabel("거리 (km)")
+    ax.set_title("시간에 따른 거리 지표")
     ax.grid(True, alpha=0.3)
     ax.legend()
     fig.tight_layout(rect=(0, 0.08, 1, 1))
     _add_footer(
         fig,
-        "Footnote: centroid distance = release point to particle-cluster center, max distance = farthest particle from release point, "
-        "mean distance = average particle distance from release point.",
+        "설명: 중심점 이동거리는 방출점에서 입자군 중심까지의 거리, 최대 이동거리는 가장 멀리 이동한 입자 거리, "
+        "평균 이동거리는 전체 입자의 평균 거리입니다.",
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output_path, dpi=180, bbox_inches="tight")
@@ -187,17 +199,16 @@ def plot_dispersion_area(metrics_df: pd.DataFrame, snapshot_hours: list[int], ou
         index = (metrics_df["hours_since_release"] - float(hour)).abs().idxmin()
         bars.append((hour, float(metrics_df.loc[index, "convex_hull_area_km2"])))
     fig, ax = plt.subplots(figsize=(8, 5))
-    ax.bar([str(hour) for hour, _ in bars], [value for _, value in bars], color="#4C78A8", label="Convex hull area")
-    ax.set_xlabel("Snapshot hour")
-    ax.set_ylabel("Convex hull area (km²)")
-    ax.set_title("Dispersion area at key times")
+    ax.bar([str(hour) for hour, _ in bars], [value for _, value in bars], color="#4C78A8", label="볼록 껍질 면적")
+    ax.set_xlabel("스냅샷 시각 (시간)")
+    ax.set_ylabel("볼록 껍질 면적 (km²)")
+    ax.set_title("주요 시점의 확산 면적")
     ax.grid(True, axis="y", alpha=0.3)
     ax.legend(loc="best")
     fig.tight_layout(rect=(0, 0.08, 1, 1))
     _add_footer(
         fig,
-        "Footnote: each bar represents the outer spread area of the particle cloud at the nearest saved timestep "
-        "to the requested snapshot hour.",
+        "설명: 각 막대는 요청한 스냅샷 시각에 가장 가까운 저장 시점에서 계산한 입자군의 외곽 확산 면적입니다.",
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output_path, dpi=180, bbox_inches="tight")
@@ -210,19 +221,18 @@ def plot_comparison(metrics_map: dict[str, pd.DataFrame], output_path: Path) -> 
     for scenario_name, metrics_df in metrics_map.items():
         axes[0].plot(metrics_df["hours_since_release"], metrics_df["max_distance_km"], label=scenario_name)
         axes[1].plot(metrics_df["hours_since_release"], metrics_df["convex_hull_area_km2"], label=scenario_name)
-    axes[0].set_ylabel("Max distance (km)")
-    axes[0].set_title("Scenario comparison")
+    axes[0].set_ylabel("최대 이동거리 (km)")
+    axes[0].set_title("시나리오 비교")
     axes[0].grid(True, alpha=0.3)
-    axes[1].set_ylabel("Hull area (km²)")
-    axes[1].set_xlabel("Hours since release")
+    axes[1].set_ylabel("볼록 껍질 면적 (km²)")
+    axes[1].set_xlabel("방출 후 경과 시간 (시간)")
     axes[1].grid(True, alpha=0.3)
     axes[0].legend(loc="best")
     axes[1].legend(loc="best")
     fig.tight_layout(rect=(0, 0.06, 1, 1))
     _add_footer(
         fig,
-        "Footnote: top panel lines = scenario-wise maximum particle travel distance, "
-        "bottom panel lines = scenario-wise convex hull area over time.",
+        "설명: 위 패널의 선은 시나리오별 최대 이동거리, 아래 패널의 선은 시나리오별 볼록 껍질 면적의 시간 변화를 나타냅니다.",
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output_path, dpi=180, bbox_inches="tight")

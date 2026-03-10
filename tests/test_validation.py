@@ -18,4 +18,4 @@ def test_real_payload_requires_files() -> None:
     payload["data_source"]["wind_path"] = None
     result = validate_scenario_payload(payload)
     assert not result.ok
-    assert any("current NetCDF" in message for message in result.errors)
+    assert any("해류 NetCDF" in message for message in result.errors)

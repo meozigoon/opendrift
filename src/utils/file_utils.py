@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 import json
-import shutil
 import zipfile
 
-from src.utils.paths import PROJECT_ROOT, slugify
+from src.utils.paths import slugify
 
 
 def read_json(path: Path) -> dict:
@@ -19,13 +18,6 @@ def write_json(path: Path, payload: dict) -> None:
 
 def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8") if path.exists() else ""
-
-
-def copy_file_if_needed(source: Path, destination: Path) -> Path:
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    if source.resolve() != destination.resolve():
-        shutil.copy2(source, destination)
-    return destination
 
 
 def save_uploaded_file(uploaded_file: object, destination_dir: Path, prefix: str) -> Path:
@@ -42,19 +34,11 @@ def save_uploaded_file(uploaded_file: object, destination_dir: Path, prefix: str
 
 
 def list_files_recursive(root: Path) -> list[Path]:
-    return sorted([path for path in root.rglob("*") if path.is_file()])
+    return sorted(path for path in root.rglob("*") if path.is_file())
 
 
 def build_manifest(root: Path) -> list[dict[str, str | int]]:
-    files = []
-    for path in list_files_recursive(root):
-        files.append(
-            {
-                "path": str(path.relative_to(root)),
-                "size_bytes": path.stat().st_size,
-            }
-        )
-    return files
+    return [{"path": str(path.relative_to(root)), "size_bytes": path.stat().st_size} for path in list_files_recursive(root)]
 
 
 def make_results_bundle(output_dir: Path, bundle_name: str = "results_bundle.zip") -> Path:
@@ -65,10 +49,3 @@ def make_results_bundle(output_dir: Path, bundle_name: str = "results_bundle.zip
                 continue
             archive.write(path, arcname=str(path.relative_to(output_dir)))
     return bundle_path
-
-
-def project_relative(path: Path) -> str:
-    try:
-        return str(path.resolve().relative_to(PROJECT_ROOT))
-    except ValueError:
-        return str(path.resolve())

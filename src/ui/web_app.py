@@ -7,7 +7,7 @@ from src.ui.state import init_state
 
 
 def main() -> None:
-    st.set_page_config(page_title="PlastDrift Surface Research", layout="wide")
+    st.set_page_config(page_title="OpenDrift PlastDrift 표층 연구", layout="wide")
     init_state()
     render_app()
 

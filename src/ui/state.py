@@ -96,7 +96,7 @@ def build_payload_from_state(defaults: dict | None = None) -> dict:
         },
         "metadata": {
             "temperature_c": defaults["project"]["temperature_c"],
-            "notes": "Saved from Streamlit UI.",
+            "notes": "Streamlit UI에서 저장한 설정이다.",
         },
     }
 
@@ -104,7 +104,5 @@ def build_payload_from_state(defaults: dict | None = None) -> dict:
 def init_state() -> None:
     defaults = load_defaults()
     apply_payload_to_state(default_scenario_payload(defaults), overwrite=False)
-    st.session_state.setdefault("form_initialized", True)
     st.session_state.setdefault("active_result_dir", None)
-    st.session_state.setdefault("last_run_logs", [])
     st.session_state.setdefault("comparison_artifacts", {})

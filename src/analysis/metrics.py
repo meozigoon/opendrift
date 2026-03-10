@@ -20,6 +20,7 @@ def calculate_metrics(dataset: xr.Dataset, scenario: ScenarioConfig) -> tuple[pd
     lon = dataset["lon"].values
     lat = dataset["lat"].values
     z = dataset["z"].values if "z" in dataset else np.zeros_like(lon)
+    release_time = times[0]
     rows: list[dict[str, Any]] = []
 
     for time_index, timestamp in enumerate(times):
@@ -30,13 +31,14 @@ def calculate_metrics(dataset: xr.Dataset, scenario: ScenarioConfig) -> tuple[pd
         lon_valid = lon_slice[valid]
         lat_valid = lat_slice[valid]
         z_valid = z_slice[valid]
+        hours_since_release = float((timestamp - release_time).total_seconds() / 3600.0)
 
         if lon_valid.size == 0:
             rows.append(
                 {
                     "scenario_name": scenario.scenario_name,
                     "timestamp": timestamp,
-                    "hours_since_release": float((timestamp - times[0]).total_seconds() / 3600.0),
+                    "hours_since_release": hours_since_release,
                     "particle_count": 0,
                     "max_distance_km": np.nan,
                     "mean_distance_km": np.nan,
@@ -54,6 +56,7 @@ def calculate_metrics(dataset: xr.Dataset, scenario: ScenarioConfig) -> tuple[pd
             continue
 
         distances = haversine_km(scenario.release_lat, scenario.release_lon, lat_valid, lon_valid)
+        mean_distance = float(np.mean(distances))
         centroid_lon = float(np.mean(lon_valid))
         centroid_lat = float(np.mean(lat_valid))
         centroid_distance = float(haversine_km(scenario.release_lat, scenario.release_lon, centroid_lat, centroid_lon))
@@ -63,15 +66,15 @@ def calculate_metrics(dataset: xr.Dataset, scenario: ScenarioConfig) -> tuple[pd
             {
                 "scenario_name": scenario.scenario_name,
                 "timestamp": timestamp,
-                "hours_since_release": float((timestamp - times[0]).total_seconds() / 3600.0),
+                "hours_since_release": hours_since_release,
                 "particle_count": int(lon_valid.size),
                 "max_distance_km": float(np.max(distances)),
-                "mean_distance_km": float(np.mean(distances)),
+                "mean_distance_km": mean_distance,
                 "centroid_lon": centroid_lon,
                 "centroid_lat": centroid_lat,
                 "centroid_distance_km": centroid_distance,
                 "convex_hull_area_km2": float(hull_area),
-                "dispersion_radius_km": float(np.mean(distances)),
+                "dispersion_radius_km": mean_distance,
                 "p95_radius_km": float(np.percentile(distances, 95)),
                 "reached_target_radius_ratio": float(np.mean(distances >= scenario.target_radius_km)),
                 "interest_area_ratio": ratio_within_bbox(lon_valid, lat_valid, scenario.interest_area_bbox),

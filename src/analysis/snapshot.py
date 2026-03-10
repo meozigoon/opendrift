@@ -36,18 +36,17 @@ def save_snapshot(dataset: xr.Dataset, scenario: ScenarioConfig, output_path: Pa
         hull_lon = np.array([point[0] for point in hull], dtype=float)
         hull_lat = np.array([point[1] for point in hull], dtype=float)
         _plot_line(ax, hull_lon, hull_lat, transform, color="#B279A2", linewidth=1.8)
-    ax.set_title(f"Snapshot {target_hour}h (nearest={actual_hour:.1f}h)")
+    ax.set_title(f"{target_hour}시간 스냅샷 (가장 가까운 저장 시각={actual_hour:.1f}시간)")
     legend_handles = [
-        Line2D([0], [0], marker="o", color="w", label="Particle positions", markerfacecolor="#4C78A8", markersize=7),
-        Line2D([0], [0], marker="*", color="w", label="Release point", markerfacecolor="#E45756", markersize=12),
-        Line2D([0], [0], color="#B279A2", lw=2, label="Convex hull"),
+        Line2D([0], [0], marker="o", color="w", label="입자 위치", markerfacecolor="#4C78A8", markersize=7),
+        Line2D([0], [0], marker="*", color="w", label="방출점", markerfacecolor="#E45756", markersize=12),
+        Line2D([0], [0], color="#B279A2", lw=2, label="볼록 껍질"),
     ]
     ax.legend(handles=legend_handles, loc="best")
     fig.tight_layout(rect=(0, 0.06, 1, 1))
     _add_footer(
         fig,
-        "Footnote: blue dots = particle positions at this snapshot, red star = release point, "
-        "purple line = outer boundary from convex hull.",
+        "설명: 파란 점은 이 스냅샷 시점의 입자 위치, 빨간 별은 방출점, 보라 선은 볼록 껍질 외곽 경계입니다.",
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output_path, dpi=180, bbox_inches="tight")
@@ -85,15 +84,14 @@ def build_animation_gif(
         _plot_scatter(ax, np.array([scenario.release_lon]), np.array([scenario.release_lat]), transform, s=85, marker="*", c="#E45756")
         ax.set_title(f"{scenario.scenario_name} | {np.datetime_as_string(times[index], unit='h')}")
         legend_handles = [
-            Line2D([0], [0], marker="o", color="w", label="Particle positions", markerfacecolor="#4C78A8", markersize=7),
-            Line2D([0], [0], marker="*", color="w", label="Release point", markerfacecolor="#E45756", markersize=12),
+            Line2D([0], [0], marker="o", color="w", label="입자 위치", markerfacecolor="#4C78A8", markersize=7),
+            Line2D([0], [0], marker="*", color="w", label="방출점", markerfacecolor="#E45756", markersize=12),
         ]
         ax.legend(handles=legend_handles, loc="best")
         fig.tight_layout(rect=(0, 0.06, 1, 1))
         _add_footer(
             fig,
-            "Footnote: blue dots = particle positions at this timestep, red star = release point. "
-            "Animation loops continuously in the web app.",
+            "설명: 파란 점은 해당 시점의 입자 위치, 빨간 별은 방출점입니다. 웹 앱에서는 애니메이션이 반복 재생됩니다.",
         )
         buffer = BytesIO()
         fig.savefig(buffer, format="png", dpi=140, bbox_inches="tight")
